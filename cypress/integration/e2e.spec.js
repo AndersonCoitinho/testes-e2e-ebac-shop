@@ -1,4 +1,7 @@
 /// <reference types="cypress" />
+let dadosLogin
+import infoCliente from "../support/page_objects/cliente.page"
+const dadosCliente = require('../fixtures/cliente.json')
 
 context('Exercicio - Testes End-to-end - Fluxo de pedido', () => {
     /*  Como cliente 
@@ -9,61 +12,58 @@ context('Exercicio - Testes End-to-end - Fluxo de pedido', () => {
         Preenchendo todas opções no checkout
         E validando minha compra ao final */
 
+    before(() => {
+        cy.fixture('perfil').then(perfil => {
+            dadosLogin = perfil
+        })
+    });
+
     beforeEach(() => {
         cy.visit('minha-conta/')
     });
 
     it('Deve fazer um pedido na loja Ebac Shop de ponta a ponta', () => {
         //Login
-        cy.get('#username').type('aluno_ebac@teste.com')
-        cy.get('#password').type('teste@teste.com')
-        cy.get('.woocommerce-form > .button').click()
-        cy.get('.woocommerce-MyAccount-content > :nth-child(2)').should('contain', 'Olá, aluno_ebac')
+        cy.fixture('perfil').then((dados) => {
+            cy.login(dados.usuario, dados.senha)
+        })
+        cy.get('.page-title').should('contain', 'Minha conta')
 
         //produtos
         cy.get('#primary-menu > .menu-item-629 > a').click()
 
-        //item 1
-        var quantidade = 1
-        cy.get('[class="product-block grid"]')
-        .contains('Abominable Hoodie')
-        .click()
-        cy.get('.button-variable-item-M').click()
-        cy.get('.button-variable-item-Red').click()
-        cy.get('.input-text').clear().type(quantidade)
-        cy.get('.single_add_to_cart_button').click()
-        cy.get('.woocommerce-message').should('contain', '“Abominable Hoodie” foi adicionado no seu carrinho.')
-        
-        //item 2
+        cy.addProduto('Abominable Hoodie', 'L', 'Red', 1) //item 1
         cy.get('#primary-menu > .menu-item-629 > a').click()
-        cy.get('[class="product-block grid"]')
-        .contains('Agasalho jhony quest')
-        .click()
-        cy.get('.single_add_to_cart_button').click()
-        cy.get('.woocommerce-message').should('contain', 'Agasalho jhony quest” foi adicionado no seu carrinho.')
-
-        //item 3
+        cy.addProduto('Ajax Full-Zip Sweatshirt', 'M', 'Red', 1) //item 2
         cy.get('#primary-menu > .menu-item-629 > a').click()
-        cy.get('[class="product-block grid"]')
-        .contains('Ajax Full-Zip Sweatshirt')
-        .click()
-        cy.get('.button-variable-item-S').click()
-        cy.get('.button-variable-item-Green').click()
-        cy.get('.input-text').clear().type(quantidade)
-        cy.get('.single_add_to_cart_button').click()
-        cy.get('.woocommerce-message').should('contain', '“Ajax Full-Zip Sweatshirt” foi adicionado no seu carrinho.')
+        cy.addProduto('Ajax Full-Zip Sweatshirt', 'XL', 'Blue', 1) //item 3
+        cy.get('#primary-menu > .menu-item-629 > a').click()
+        cy.addProduto('Abominable Hoodie', 'M', 'Blue', 1) //item 4
 
         //carrinho
         cy.get('.woocommerce-message > .button').click()
         cy.get('.checkout-button').click()
-        cy.get('#terms').click()
-        cy.get('#woocommerce_checkout_place_order').click()
 
-        //cy.get('#payment_method_cod').click()
-        //cy.get('#terms').click()
-        //cy.get('#place_order').click()
-        //testar
+
+        //dados cliente
+        infoCliente.editarCheckoutCliente(
+            dadosCliente[2].nome,
+            dadosCliente[2].sobrenome,
+            dadosCliente[2].empresa,
+            dadosCliente[2].pais,
+            dadosCliente[2].endereco,
+            dadosCliente[2].numero,
+            dadosCliente[2].cidade,
+            dadosCliente[2].estado,
+            dadosCliente[2].cep,
+            dadosCliente[2].telefone,
+            dadosCliente[2].email
+        )
+
+        //pagamento
+        cy.get('#payment_method_cod').click()
+        cy.get('#terms').check({ force: true })
+        cy.get('#place_order').click({ force: true })
+        cy.get('.woocommerce-notice').should('contain', 'Obrigado. Seu pedido foi recebido.')
     });
-
-
 })
